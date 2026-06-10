@@ -1,6 +1,6 @@
 {
   "name": "georgeff/container",
-  "description": "A light weight DI container",
+  "description": "A lightweight dependency injection container implementing PSR-11",
   "type": "library",
   "authors": [
     {
@@ -33,8 +33,14 @@
     "sort-packages": true
   },
   "scripts": {
-    "test": ["vendor/bin/phpunit"],
-    "analyze": ["vendor/bin/phpstan"],
-    "phpcs": ["vendor/bin/phpcs"]
+    "test": [
+      "vendor/bin/phpunit"
+    ],
+    "analyze": [
+      "vendor/bin/phpstan"
+    ],
+    "phpcs": [
+      "vendor/bin/phpcs"
+    ]
   }
 }
