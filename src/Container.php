@@ -42,6 +42,34 @@ class Container implements ContainerInterface
     private array $resolving = [];
 
     /**
+     * Global pre-resolution hooks
+     *
+     * @var list<callable(string): void>
+     */
+    private array $onResolving = [];
+
+    /**
+     * Global post-resolution hooks
+     *
+     * @var list<callable(string, mixed): void>
+     */
+    private array $afterResolved = [];
+
+    /**
+     * Definition specific pre-resolution hooks
+     *
+     * @var array<string, list<callable(string): void>>
+     */
+    private array $onResolvingId = [];
+
+    /**
+     * Definition specific post-resolution hooks
+     *
+     * @var array<string, list<callable(string, mixed): void>>
+     */
+    private array $afterResolvedId = [];
+
+    /**
      * @inheritdoc
      */
     public function has(string $id): bool
@@ -59,6 +87,8 @@ class Container implements ContainerInterface
         }
 
         $id = $this->getId($id);
+
+        $this->firePreResolutionCallbacks($id);
 
         if (isset($this->resolved[$id])) {
             return $this->resolved[$id];
@@ -83,6 +113,8 @@ class Container implements ContainerInterface
         if ($this->isShared($id)) {
             $this->resolved[$id] = $instance;
         }
+
+        $this->firePostResolutionCallbacks($id, $instance);
 
         return $instance;
     }
@@ -150,6 +182,38 @@ class Container implements ContainerInterface
     }
 
     /**
+     * @param callable(string): void $callback
+     */
+    public function onResolving(callable $callback): void
+    {
+        $this->onResolving[] = $callback;
+    }
+
+    /**
+     * @param callable(string): void $callback
+     */
+    public function onResolvingId(string $id, callable $callback): void
+    {
+        $this->onResolvingId[$id][] = $callback;
+    }
+
+    /**
+     * @param callable(string, mixed): void $callback
+     */
+    public function afterResolved(callable $callback): void
+    {
+        $this->afterResolved[] = $callback;
+    }
+
+    /**
+     * @param callable(string, mixed): void $callback
+     */
+    public function afterResolvedId(string $id, callable $callback): void
+    {
+        $this->afterResolvedId[$id][] = $callback;
+    }
+
+    /**
      * Get an Id from an alias or return the original ID
      *
      * @param string $id
@@ -159,5 +223,27 @@ class Container implements ContainerInterface
     protected function getId(string $id): string
     {
         return $this->aliases[$id] ?? $id;
+    }
+
+    private function firePreResolutionCallbacks(string $id): void
+    {
+        foreach ($this->onResolving as $callback) {
+            $callback($id);
+        }
+
+        foreach ($this->onResolvingId[$id] ?? [] as $callback) {
+            $callback($id);
+        }
+    }
+
+    private function firePostResolutionCallbacks(string $id, mixed $instance): void
+    {
+        foreach ($this->afterResolvedId[$id] ?? [] as $callback) {
+            $callback($id, $instance);
+        }
+
+        foreach ($this->afterResolved as $callback) {
+            $callback($id, $instance);
+        }
     }
 }

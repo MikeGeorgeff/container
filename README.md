@@ -60,6 +60,44 @@ $container->addAlias(DatabaseConnection::class, ConnectionInterface::class);
 $db = $container->get(ConnectionInterface::class);
 ```
 
+### Resolution Hooks
+
+Hooks allow you to observe or react to service resolution. Four hooks are available: global pre, service-specific pre, service-specific post, and global post. When multiple hooks are registered they fire in that order — global pre first, global post last.
+
+**Global pre-resolution** — fires on every `get()` call, including cache hits for shared services:
+
+```php
+$container->onResolving(function (string $id): void {
+    echo "Resolving: $id";
+});
+```
+
+**Service-specific pre-resolution** — fires only when the given ID is resolved:
+
+```php
+$container->onResolvingId('database', function (string $id): void {
+    echo "Resolving database";
+});
+```
+
+**Service-specific post-resolution** — fires after the factory runs for the given ID; does not fire on cache hits:
+
+```php
+$container->afterResolvedId('database', function (string $id, mixed $instance): void {
+    echo "Resolved database";
+});
+```
+
+**Global post-resolution** — fires after the factory runs for any service; does not fire on cache hits:
+
+```php
+$container->afterResolved(function (string $id, mixed $instance): void {
+    echo "Resolved: $id";
+});
+```
+
+All hooks receive the canonical ID after alias resolution, not the alias used to call `get()`. Multiple hooks of the same type can be registered and all will fire in registration order.
+
 ### Checking for Definitions
 
 ```php

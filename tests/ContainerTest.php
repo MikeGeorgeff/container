@@ -235,4 +235,207 @@ class ContainerTest extends TestCase
 
         $this->assertInstanceOf(ContainerExceptionInterface::class, $e);
     }
+
+    // onResolving() — global pre-resolution hook
+
+    public function test_on_resolving_fires_before_resolution(): void
+    {
+        $container = new Container();
+        $container->add('foo', fn () => new \stdClass());
+
+        $fired = [];
+        $container->onResolving(function (string $id) use (&$fired) {
+            $fired[] = $id;
+        });
+
+        $container->get('foo');
+
+        $this->assertSame(['foo'], $fired);
+    }
+
+    public function test_on_resolving_fires_on_every_call_including_cache_hits(): void
+    {
+        $container = new Container();
+        $container->addShared('foo', fn () => new \stdClass());
+
+        $count = 0;
+        $container->onResolving(function () use (&$count) {
+            $count++;
+        });
+
+        $container->get('foo');
+        $container->get('foo');
+
+        $this->assertSame(2, $count);
+    }
+
+    public function test_on_resolving_fires_with_canonical_id_when_resolved_via_alias(): void
+    {
+        $container = new Container();
+        $container->add('foo', fn () => new \stdClass());
+        $container->addAlias('foo', 'bar');
+
+        $fired = [];
+        $container->onResolving(function (string $id) use (&$fired) {
+            $fired[] = $id;
+        });
+
+        $container->get('bar');
+
+        $this->assertSame(['foo'], $fired);
+    }
+
+    public function test_multiple_on_resolving_hooks_all_fire(): void
+    {
+        $container = new Container();
+        $container->add('foo', fn () => new \stdClass());
+
+        $fired = [];
+        $container->onResolving(function () use (&$fired) { $fired[] = 'a'; });
+        $container->onResolving(function () use (&$fired) { $fired[] = 'b'; });
+
+        $container->get('foo');
+
+        $this->assertSame(['a', 'b'], $fired);
+    }
+
+    // onResolvingId() — service-specific pre-resolution hook
+
+    public function test_on_resolving_id_fires_only_for_target_id(): void
+    {
+        $container = new Container();
+        $container->add('foo', fn () => new \stdClass());
+        $container->add('bar', fn () => new \stdClass());
+
+        $fired = [];
+        $container->onResolvingId('foo', function (string $id) use (&$fired) {
+            $fired[] = $id;
+        });
+
+        $container->get('foo');
+        $container->get('bar');
+
+        $this->assertSame(['foo'], $fired);
+    }
+
+    public function test_multiple_on_resolving_id_hooks_for_same_id_all_fire(): void
+    {
+        $container = new Container();
+        $container->add('foo', fn () => new \stdClass());
+
+        $fired = [];
+        $container->onResolvingId('foo', function () use (&$fired) { $fired[] = 'a'; });
+        $container->onResolvingId('foo', function () use (&$fired) { $fired[] = 'b'; });
+
+        $container->get('foo');
+
+        $this->assertSame(['a', 'b'], $fired);
+    }
+
+    // afterResolved() — global post-resolution hook
+
+    public function test_after_resolved_fires_after_resolution_with_id_and_instance(): void
+    {
+        $expected = new \stdClass();
+        $container = new Container();
+        $container->add('foo', fn () => $expected);
+
+        $calls = [];
+        $container->afterResolved(function (string $id, mixed $instance) use (&$calls) {
+            $calls[] = [$id, $instance];
+        });
+
+        $container->get('foo');
+
+        $this->assertCount(1, $calls);
+        $this->assertSame('foo', $calls[0][0]);
+        $this->assertSame($expected, $calls[0][1]);
+    }
+
+    public function test_after_resolved_does_not_fire_on_cache_hit(): void
+    {
+        $container = new Container();
+        $container->addShared('foo', fn () => new \stdClass());
+        $container->get('foo');
+
+        $count = 0;
+        $container->afterResolved(function () use (&$count) {
+            $count++;
+        });
+
+        $container->get('foo');
+
+        $this->assertSame(0, $count);
+    }
+
+    public function test_multiple_after_resolved_hooks_all_fire(): void
+    {
+        $container = new Container();
+        $container->add('foo', fn () => new \stdClass());
+
+        $fired = [];
+        $container->afterResolved(function () use (&$fired) { $fired[] = 'a'; });
+        $container->afterResolved(function () use (&$fired) { $fired[] = 'b'; });
+
+        $container->get('foo');
+
+        $this->assertSame(['a', 'b'], $fired);
+    }
+
+    // afterResolvedId() — service-specific post-resolution hook
+
+    public function test_after_resolved_id_fires_only_for_target_id(): void
+    {
+        $container = new Container();
+        $container->add('foo', fn () => new \stdClass());
+        $container->add('bar', fn () => new \stdClass());
+
+        $fired = [];
+        $container->afterResolvedId('foo', function (string $id) use (&$fired) {
+            $fired[] = $id;
+        });
+
+        $container->get('foo');
+        $container->get('bar');
+
+        $this->assertSame(['foo'], $fired);
+    }
+
+    public function test_multiple_after_resolved_id_hooks_for_same_id_all_fire(): void
+    {
+        $container = new Container();
+        $container->add('foo', fn () => new \stdClass());
+
+        $fired = [];
+        $container->afterResolvedId('foo', function () use (&$fired) { $fired[] = 'a'; });
+        $container->afterResolvedId('foo', function () use (&$fired) { $fired[] = 'b'; });
+
+        $container->get('foo');
+
+        $this->assertSame(['a', 'b'], $fired);
+    }
+
+    // Hook firing order
+
+    public function test_hook_firing_order_is_global_pre_specific_pre_factory_specific_post_global_post(): void
+    {
+        $container = new Container();
+
+        $order = [];
+
+        $container->onResolving(function () use (&$order) { $order[] = 'global-pre'; });
+        $container->onResolvingId('foo', function () use (&$order) { $order[] = 'specific-pre'; });
+        $container->afterResolvedId('foo', function () use (&$order) { $order[] = 'specific-post'; });
+        $container->afterResolved(function () use (&$order) { $order[] = 'global-post'; });
+
+        $container->add('foo', function () use (&$order) {
+            $order[] = 'factory';
+
+            return new \stdClass();
+        });
+
+        $container->get('foo');
+
+        $this->assertSame(['global-pre', 'specific-pre', 'factory', 'specific-post', 'global-post'], $order);
+    }
 }
