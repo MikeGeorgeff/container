@@ -6,6 +6,7 @@ use Georgeff\Container\CircularDependencyException;
 use Georgeff\Container\Container;
 use Georgeff\Container\ContainerException;
 use Georgeff\Container\DefinitionNotFoundException;
+use Georgeff\Container\InvalidAliasException;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerExceptionInterface;
 use Psr\Container\ContainerInterface;
@@ -167,6 +168,38 @@ class ContainerTest extends TestCase
         $this->expectException(DefinitionNotFoundException::class);
 
         $container->addAlias('foo', 'bar');
+    }
+
+    public function test_add_alias_flattens_chained_aliases(): void
+    {
+        $expected = new \stdClass();
+        $container = new Container();
+        $container->add('foo', fn () => $expected);
+        $container->addAlias('foo', 'bar');
+        $container->addAlias('bar', 'baz');
+
+        $this->assertSame($expected, $container->get('baz'));
+    }
+
+    public function test_add_alias_throws_for_self_referencing_alias(): void
+    {
+        $container = new Container();
+        $container->add('foo', fn () => new \stdClass());
+
+        $this->expectException(InvalidAliasException::class);
+
+        $container->addAlias('foo', 'foo');
+    }
+
+    public function test_add_alias_throws_when_chained_alias_forms_a_cycle(): void
+    {
+        $container = new Container();
+        $container->add('foo', fn () => new \stdClass());
+        $container->addAlias('foo', 'bar');
+
+        $this->expectException(InvalidAliasException::class);
+
+        $container->addAlias('bar', 'foo');
     }
 
     // Circular dependency detection

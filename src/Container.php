@@ -164,7 +164,13 @@ class Container implements ContainerInterface
             throw new DefinitionNotFoundException("Cannot alias a non-existing definition [$id]");
         }
 
-        $this->aliases[$alias] = $id;
+        $resolved = $this->getId($id);
+
+        if ($resolved === $alias) {
+            throw new InvalidAliasException("Self referencing alias [$alias]");
+        }
+
+        $this->aliases[$alias] = $resolved;
     }
 
     /**

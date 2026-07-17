@@ -4,6 +4,17 @@ All notable changes to `georgeff/container` are documented here.
 
 ---
 
+## [1.1.1] — 2026-07-17
+
+### Fixed
+- `addAlias(string $id, string $alias): void` — chained aliases (aliasing an alias) are now flattened to the original definition ID at registration time instead of storing an unresolved intermediate ID
+- `addAlias()` now throws `InvalidAliasException` when the alias is self-referencing or would form a cycle, rather than silently registering a broken alias
+
+### Added
+- `InvalidAliasException` — thrown when `addAlias()` is given a self-referencing or cyclic alias; implements PSR-11 `ContainerExceptionInterface`
+
+---
+
 ## [1.1.0] — 2026-06-19
 
 ### Added
