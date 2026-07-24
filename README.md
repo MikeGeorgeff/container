@@ -2,6 +2,12 @@
 
 A lightweight dependency injection container implementing [PSR-11](https://www.php-fig.org/psr/psr-11/).
 
+## Status
+
+This package is considered **feature-complete** as of 2.0. It exists to strictly implement the PSR-11 contract with the minimal feature set needed to support it — bugfixes and PSR-11 contract-compliance changes remain in scope, but no new capabilities are planned.
+
+Anything beyond bare resolution — tagging, decoration, overriding, conditional/fallback registration — is deliberately out of scope here. That's [`georgeff/kernel`](https://github.com/MikeGeorgeff/kernel)'s job: `Container` owns resolution-lifecycle mechanism (the hooks below), the kernel owns the DI policy built on top of it.
+
 ## Installation
 
 ```bash
