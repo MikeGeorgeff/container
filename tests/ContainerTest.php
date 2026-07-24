@@ -215,6 +215,43 @@ class ContainerTest extends TestCase
         $container->get('a');
     }
 
+    public function test_get_throws_on_direct_self_referencing_circular_dependency(): void
+    {
+        $container = new Container();
+        $container->add('a', fn (ContainerInterface $c) => $c->get('a'));
+
+        $this->expectException(CircularDependencyException::class);
+
+        $container->get('a');
+    }
+
+    public function test_pre_resolution_hooks_fire_for_each_link_in_a_circular_chain_but_post_hooks_never_fire(): void
+    {
+        $container = new Container();
+        $container->add('a', fn (ContainerInterface $c) => $c->get('b'));
+        $container->add('b', fn (ContainerInterface $c) => $c->get('a'));
+
+        $pre = [];
+        $container->onResolving(function (string $id) use (&$pre) {
+            $pre[] = $id;
+        });
+
+        $postCount = 0;
+        $container->afterResolved(function () use (&$postCount) {
+            $postCount++;
+        });
+
+        try {
+            $container->get('a');
+            $this->fail('Expected CircularDependencyException');
+        } catch (CircularDependencyException) {
+            // expected
+        }
+
+        $this->assertSame(['a', 'b', 'a'], $pre);
+        $this->assertSame(0, $postCount);
+    }
+
     public function test_resolving_state_is_cleaned_up_after_exception(): void
     {
         $container = new Container();
@@ -286,7 +323,7 @@ class ContainerTest extends TestCase
         $this->assertSame(['foo'], $fired);
     }
 
-    public function test_on_resolving_fires_on_every_call_including_cache_hits(): void
+    public function test_on_resolving_does_not_fire_on_cache_hits(): void
     {
         $container = new Container();
         $container->addShared('foo', fn () => new \stdClass());
@@ -299,7 +336,7 @@ class ContainerTest extends TestCase
         $container->get('foo');
         $container->get('foo');
 
-        $this->assertSame(2, $count);
+        $this->assertSame(1, $count);
     }
 
     public function test_on_resolving_fires_with_canonical_id_when_resolved_via_alias(): void
@@ -349,6 +386,22 @@ class ContainerTest extends TestCase
         $container->get('bar');
 
         $this->assertSame(['foo'], $fired);
+    }
+
+    public function test_on_resolving_id_does_not_fire_on_cache_hits(): void
+    {
+        $container = new Container();
+        $container->addShared('foo', fn () => new \stdClass());
+
+        $count = 0;
+        $container->onResolvingId('foo', function () use (&$count) {
+            $count++;
+        });
+
+        $container->get('foo');
+        $container->get('foo');
+
+        $this->assertSame(1, $count);
     }
 
     public function test_multiple_on_resolving_id_hooks_for_same_id_all_fire(): void
@@ -432,6 +485,22 @@ class ContainerTest extends TestCase
         $container->get('bar');
 
         $this->assertSame(['foo'], $fired);
+    }
+
+    public function test_after_resolved_id_does_not_fire_on_cache_hit(): void
+    {
+        $container = new Container();
+        $container->addShared('foo', fn () => new \stdClass());
+        $container->get('foo');
+
+        $count = 0;
+        $container->afterResolvedId('foo', function () use (&$count) {
+            $count++;
+        });
+
+        $container->get('foo');
+
+        $this->assertSame(0, $count);
     }
 
     public function test_multiple_after_resolved_id_hooks_for_same_id_all_fire(): void

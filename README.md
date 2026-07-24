@@ -64,7 +64,9 @@ $db = $container->get(ConnectionInterface::class);
 
 Hooks allow you to observe or react to service resolution. Four hooks are available: global pre, service-specific pre, service-specific post, and global post. When multiple hooks are registered they fire in that order — global pre first, global post last.
 
-**Global pre-resolution** — fires on every `get()` call, including cache hits for shared services:
+Pre-resolution hooks fire only when a resolution is genuinely attempted — never on a cache hit for an already-resolved shared service. They still fire if the attempt subsequently fails (a thrown exception, or a circular dependency), since the attempt itself did happen; only the post-resolution hooks are skipped in that case.
+
+**Global pre-resolution** — fires when a resolution is attempted; does not fire on cache hits:
 
 ```php
 $container->onResolving(function (string $id): void {
@@ -72,7 +74,7 @@ $container->onResolving(function (string $id): void {
 });
 ```
 
-**Service-specific pre-resolution** — fires only when the given ID is resolved:
+**Service-specific pre-resolution** — fires only when the given ID's resolution is attempted; does not fire on cache hits:
 
 ```php
 $container->onResolvingId('database', function (string $id): void {

@@ -4,6 +4,16 @@ All notable changes to `georgeff/container` are documented here.
 
 ---
 
+## [2.0.0] — 2026-07-23
+
+### Changed
+- **Breaking:** `Container` is now `final`
+- **Breaking:** `$definitions`, `$resolved`, `$shared`, `$aliases`, and `getId()` narrowed from `protected` to `private`
+- **Breaking:** PHP floor raised from `^8.2` to `^8.3`
+- **Breaking:** `onResolving`/`onResolvingId` no longer fire on a cache hit for an already-resolved shared service — previously fired on every `get()` call including cache hits; now only fire when a resolution is genuinely attempted, matching `afterResolved`/`afterResolvedId`'s existing cache-hit behavior. Pre-resolution hooks still fire if the attempt subsequently fails (a thrown exception, or a circular dependency).
+
+---
+
 ## [1.1.1] — 2026-07-17
 
 ### Fixed

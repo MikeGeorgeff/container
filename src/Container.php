@@ -4,35 +4,35 @@ namespace Georgeff\Container;
 
 use Psr\Container\ContainerInterface;
 
-class Container implements ContainerInterface
+final class Container implements ContainerInterface
 {
     /**
      * Container definitions
      *
-     * @var array<string, callable>
+     * @var array<string, callable(ContainerInterface): mixed>
      */
-    protected array $definitions = [];
+    private array $definitions = [];
 
     /**
      * Resolved shared definitions
      *
      * @var array<string, mixed>
      */
-    protected array $resolved = [];
+    private array $resolved = [];
 
     /**
      * Indicates if a definition is shared
      *
      * @var array<string, bool>
      */
-    protected array $shared = [];
+    private array $shared = [];
 
     /**
      * Definition aliases
      *
      * @var array<string, string>
      */
-    protected array $aliases = [];
+    private array $aliases = [];
 
     /**
      * Definitions currently being resolved
@@ -88,11 +88,11 @@ class Container implements ContainerInterface
 
         $id = $this->getId($id);
 
-        $this->firePreResolutionCallbacks($id);
-
         if (isset($this->resolved[$id])) {
             return $this->resolved[$id];
         }
+
+        $this->firePreResolutionCallbacks($id);
 
         if (isset($this->resolving[$id])) {
             throw new CircularDependencyException("Circular dependency detected for [$id]");
@@ -122,9 +122,9 @@ class Container implements ContainerInterface
     /**
      * Add a definition to the container
      *
-     * @param string   $id
-     * @param callable $definition
-     * @param bool     $shared
+     * @param string                              $id
+     * @param callable(ContainerInterface): mixed $definition
+     * @param bool                                $shared
      *
      * @return void
      */
@@ -140,8 +140,8 @@ class Container implements ContainerInterface
     /**
      * Add a shared definition to the container
      *
-     * @param string   $id
-     * @param callable $definition
+     * @param string                              $id
+     * @param callable(ContainerInterface): mixed $definition
      *
      * @return void
      */
@@ -220,13 +220,13 @@ class Container implements ContainerInterface
     }
 
     /**
-     * Get an Id from an alias or return the original ID
+     * Get an ID from an alias or return the original ID
      *
      * @param string $id
      *
      * @return string
      */
-    protected function getId(string $id): string
+    private function getId(string $id): string
     {
         return $this->aliases[$id] ?? $id;
     }
