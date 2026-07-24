@@ -1,5 +1,8 @@
 # Container
 
+[![Build Status](https://github.com/MikeGeorgeff/container/actions/workflows/ci.yml/badge.svg)](https://github.com/MikeGeorgeff/container/actions/workflows/ci.yml)
+[![Packagist Version](https://img.shields.io/packagist/v/georgeff/container)](https://packagist.org/packages/georgeff/container)
+
 A lightweight dependency injection container implementing [PSR-11](https://www.php-fig.org/psr/psr-11/).
 
 ## Status
