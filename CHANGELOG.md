@@ -4,7 +4,7 @@ All notable changes to `georgeff/container` are documented here.
 
 ---
 
-## [2.0.0] — Unreleased
+## [2.0.0] — 2026-07-23
 
 ### Changed
 - **Breaking:** `Container` is now `final`
